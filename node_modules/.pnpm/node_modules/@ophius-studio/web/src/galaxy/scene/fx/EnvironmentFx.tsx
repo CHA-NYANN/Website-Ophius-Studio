@@ -11,10 +11,6 @@ import { Zodiac } from "../entities/Zodiac";
  *   karena itu membuat kamera terasa "di luar" / mengorbit.
  * - Aksen (ring glow tipis) kita taruh sebagai "ground haze" jauh di bawah,
  *   supaya dari POV terlihat seperti busur di bawah layar.
- *
- * Perubahan:
- * - BlackHole dihapus (sesuai permintaan).
- * - Zodiac tetap ada.
  */
 export function EnvironmentFx() {
   const glowGeo = useMemo(() => new THREE.CircleGeometry(14.5, 128), []);
