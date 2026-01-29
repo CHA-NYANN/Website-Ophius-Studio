@@ -1,12 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { BlackHole } from "./BlackHole";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { BlackHoleModel } from "./BlackHoleModel";
-import { BlackHoleLensingPass } from "../fx/BlackHoleLensingPass";
 
-// Canonical model name used by the scene.
-// (Kalau kamu punya export Blender lain, simpan saja di folder yang sama,
-// tapi jangan ikut di-check runtime biar nggak ada request/HEAD tambahan.)
-const MODEL_URLS = ["/models/blackhole/blackhole.glb"];
+// Prefer a clean canonical name, but also support the exported Blender file name.
+const MODEL_URLS = [
+  "/models/blackhole/blackhole.glb",
+  "/models/blackhole/black_hole_project.glb",
+];
 
 async function isLikelyBinaryAsset(url: string): Promise<boolean> {
   try {
@@ -27,16 +26,19 @@ async function isLikelyBinaryAsset(url: string): Promise<boolean> {
 }
 
 /**
- * BlackHoleHost
+ * BlackHoleHost (GLB-only)
  *
- * - If a model exists in /public, we render the model (cheaper / more realistic art).
- * - If not, we fall back to the current procedural Level-2 black hole.
+ * Permintaan terbaru:
+ * - Hapus blackhole yang dari coding (procedural + lensing).
+ * - Fokus pakai blackhole dari GLB (Blender) saja.
  *
- * Important: Dev servers may return index.html for unknown paths (HTTP 200). We guard against that.
+ * Asset tetap di:
+ *   apps/web/public/models/blackhole/blackhole.glb
+ * atau nama export lama:
+ *   black_hole_project.glb
  */
 export function BlackHoleHost() {
   const [modelUrl, setModelUrl] = useState<string | null>(null);
-
   const urls = useMemo(() => MODEL_URLS, []);
 
   useEffect(() => {
@@ -58,24 +60,17 @@ export function BlackHoleHost() {
     };
   }, [urls]);
 
-  const useModel = modelUrl != null;
+  if (!modelUrl) return null;
 
   return (
-    <>
-      {useModel ? (
-        <BlackHoleModel
-          url={modelUrl!}
-          // Slight tilt helps match the cinematic reference angle.
-          rotation={[0, 0.12, 0.0]}
-          scale={1}
-          position={[-5.6, 0.18, 0.25]}
-        />
-      ) : (
-        <>
-          <BlackHole />
-          <BlackHoleLensingPass />
-        </>
-      )}
-    </>
+    <Suspense fallback={null}>
+      <BlackHoleModel
+        url={modelUrl}
+        // Slight tilt helps match the cinematic reference angle.
+        rotation={[0, 0.12, 0.0]}
+        scale={1}
+        position={[-5.6, 0.18, 0.25]}
+      />
+    </Suspense>
   );
 }
