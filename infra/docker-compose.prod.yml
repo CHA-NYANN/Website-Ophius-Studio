@@ -1,0 +1,51 @@
+name: ophius-studio
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ophius
+      POSTGRES_PASSWORD: ophius
+      POSTGRES_DB: ophius
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5433}:5432"
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      TRUST_PROXY: "true"
+      # When running behind the nginx service below, the browser origin is http://localhost:8080
+      CORS_ORIGINS: "http://localhost:8080"
+      ALLOWED_ORIGINS: "http://localhost:8080"
+      COOKIE_SECRET: "change-me-in-prod"
+      COOKIE_SAMESITE: "lax"
+      SESSION_TTL_SECONDS: "43200"
+      UPLOAD_DIR: "/app/uploads"
+      DATABASE_URL: "postgresql://ophius:ophius@db:5432/ophius?schema=public"
+      SEED_ADMIN_USERNAME: "admin"
+      SEED_ADMIN_PASSWORD: "admin"
+    depends_on:
+      - db
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:
+  uploads:

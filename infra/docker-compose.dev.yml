@@ -1,0 +1,21 @@
+name: ophius-studio-dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ophius
+      POSTGRES_PASSWORD: ophius
+      POSTGRES_DB: ophius
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ophius -d ophius"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db_data:
