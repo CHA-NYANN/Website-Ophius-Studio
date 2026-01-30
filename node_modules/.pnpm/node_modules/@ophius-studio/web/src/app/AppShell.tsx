@@ -1,5 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { GalaxyLoadingOverlay } from "@/components/common/GalaxyLoadingOverlay";
 import { GalaxyCanvas } from "@/galaxy/GalaxyCanvas";
 import { GalaxyHud } from "@/galaxy/hud/GalaxyHud";
 import { FocusPanelMode } from "@/galaxy/scene/ui/FocusPanelMode";
@@ -38,6 +39,7 @@ export function AppShell() {
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
+      <GalaxyLoadingOverlay pathname={location.pathname} />
       <GalaxyCanvas />
       <GalaxyHud />
       <FocusPanelMode />
