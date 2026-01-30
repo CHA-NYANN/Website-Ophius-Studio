@@ -263,14 +263,29 @@ export function PanelRing() {
     orbitRef.current += dt * 0.32 * (0.1 + 0.9 * vis);
 
     // viewport size at depth (kita samakan dengan NavPlanet)
-    const depthOpen = 4.6;
-    const depthPanels = depthOpen + 0.65; // sedikit di belakang planet
-    const fov = MathUtils.degToRad(cam.fov);
-    const h = 2 * depthPanels * Math.tan(fov / 2);
-    const w = h * cam.aspect;
-    const minWH = Math.min(w, h);
-    const radiusHUD = minWH * 0.38;
-    const scaleHUD = MathUtils.clamp(minWH * 0.18, 0.32, 0.52);
+// Mobile/portrait butuh orbit lebih "tinggi" dan panel sedikit lebih kecil supaya tidak tabrakan.
+const isMobile = state.size.width < 520 || cam.aspect < 0.9;
+
+// Dorong panel sedikit lebih jauh saat mobile supaya kelihatan lebih kecil (tanpa mengubah ukuran mesh).
+const depthOpen = isMobile ? 5.25 : 4.6;
+const depthPanels = depthOpen + 0.75; // sedikit di belakang planet
+const fov = MathUtils.degToRad(cam.fov);
+const h = 2 * depthPanels * Math.tan(fov / 2);
+const w = h * cam.aspect;
+const minWH = Math.min(w, h);
+
+// Orbit radius & scale (mobile: lebih kecil + lebih rapat di X, lebih tinggi di Y).
+const radiusHUD = minWH * (isMobile ? 0.44 : 0.38);
+const scaleHUD = MathUtils.clamp(
+  minWH * (isMobile ? 0.145 : 0.18),
+  isMobile ? 0.26 : 0.32,
+  isMobile ? 0.44 : 0.52
+);
+
+// Ellipse shaping untuk mobile (portrait): lebih tinggi, sedikit lebih sempit.
+const xMul = isMobile ? 0.86 : 1.0;
+const yMul = isMobile ? 0.78 : 0.42;
+const yOffset = isMobile ? 0.18 : 0.0;
 
     // safe-cone factor (hanya relevan saat menu tertutup)
     const denom = Math.max(0.0001, safe.safeConeStartYaw - safe.safeConeFullYaw);
@@ -300,9 +315,9 @@ export function PanelRing() {
 
       // OPEN target (HUD orbit mengelilingi planet di tengah)
       const a = baseStart + (i / N) * Math.PI * 2 + orbit;
-      const rr = radiusHUD * (p.featured ? 1.08 : 1.0);
-      const ox = Math.cos(a) * rr;
-      const oy = Math.sin(a) * rr * 0.42 + (p.featured ? rr * 0.1 : 0);
+      const rr = radiusHUD * (p.featured ? (isMobile ? 1.03 : 1.08) : 1.0);
+const ox = Math.cos(a) * rr * xMul;
+const oy = Math.sin(a) * rr * yMul + yOffset + (p.featured ? rr * (isMobile ? 0.07 : 0.1) : 0);
       const oz = Math.sin(a * 1.25 + i * 0.7) * 0.08;
 
       // posisi dalam camera-space, lalu jadi world.

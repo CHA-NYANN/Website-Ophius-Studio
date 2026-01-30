@@ -54,8 +54,9 @@ export function NavPlanet() {
 
     // Compute viewport size at a fixed depth in camera local space.
     const cam = state.camera as THREE.PerspectiveCamera;
+    const isMobile = state.size.width < 520 || cam.aspect < 0.9;
     const depthClosed = 3.25;
-    const depthOpen = 4.6;
+    const depthOpen = isMobile ? 5.25 : 4.6;
     const depth = THREE.MathUtils.lerp(depthClosed, depthOpen, t);
 
     const fov = THREE.MathUtils.degToRad(cam.fov);
@@ -81,7 +82,7 @@ export function NavPlanet() {
     g.quaternion.copy(cam.quaternion);
 
     // Scale: small in corner, bigger in center.
-    const baseScale = THREE.MathUtils.lerp(0.22, 0.6, t);
+    const baseScale = THREE.MathUtils.lerp(0.22, isMobile ? 0.5 : 0.6, t);
     const hoverBoost = hovered ? 0.06 : 0;
     g.scale.setScalar(baseScale + hoverBoost);
 

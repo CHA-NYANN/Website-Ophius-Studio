@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { TOKENS } from "@/theme/tokens";
 import { portal } from "@/portal/portalSingleton";
 import { cameraStore } from "@/galaxy/scene/rigs/cameraStore";
@@ -35,6 +35,29 @@ export function GalaxyHud() {
   const cameraState = useCameraState();
   const query = usePanelQuery();
 
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 520px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(max-width: 520px)");
+    const onChange = () => setIsMobile(mql.matches);
+    // Safari fallback
+    // @ts-expect-error older Safari
+    if (mql.addEventListener) mql.addEventListener("change", onChange);
+    // @ts-expect-error older Safari
+    else mql.addListener(onChange);
+    return () => {
+      // @ts-expect-error older Safari
+      if (mql.removeEventListener) mql.removeEventListener("change", onChange);
+      // @ts-expect-error older Safari
+      else mql.removeListener(onChange);
+    };
+  }, []);
+
+
   const show = useMemo(() => loc.pathname === "/" && portalState.phase === "idle", [loc.pathname, portalState.phase]);
 
   const vis = useMemo(() => {
@@ -51,20 +74,21 @@ export function GalaxyHud() {
     <div
       style={{
         position: "fixed",
-        left: 18,
-        bottom: 18,
+        left: isMobile ? 12 : 18,
+        right: isMobile ? 12 : undefined,
+        bottom: isMobile ? 12 : 18,
         zIndex: 12,
         pointerEvents: "none",
-        transform: `translateY(${(1 - vis) * 18}px)`,
+        transform: `translateY(${(1 - vis) * (isMobile ? 10 : 18)}px)`,
         opacity: 0.35 + vis * 0.65,
         transition: "opacity 120ms linear"
       }}
     >
       <div
         style={{
-          width: 320,
+          width: isMobile ? "min(360px, calc(100vw - 24px))" : 320,
           borderRadius: 18,
-          padding: 12,
+          padding: isMobile ? 10 : 12,
           background: "rgba(0,0,0,0.22)",
           border: "1px solid rgba(120,200,255,0.18)",
           boxShadow: "0 0 0 1px rgba(0,0,0,0.2) inset, 0 14px 50px rgba(0,0,0,0.55)",
@@ -89,9 +113,11 @@ export function GalaxyHud() {
             outline: "none"
           }}
         />
-        <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.55)" }}>
-          Tip: look down to reveal the keyboard hologram.
-        </div>
+        {!isMobile && (
+          <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.55)" }}>
+            Tip: look down to reveal the keyboard hologram.
+          </div>
+        )}
       </div>
     </div>
   );
