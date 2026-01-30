@@ -42,10 +42,6 @@ export function BlackHoleModel({
       const mesh = obj as THREE.Mesh;
       if (!mesh.isMesh) return;
 
-      // Pastikan mesh besar ("environment") tidak pernah ter-cull...
-      // Ini penting kalau environment adalah dome/sky dari Blender.
-      mesh.frustumCulled = false;
-
       mesh.castShadow = false;
       mesh.receiveShadow = false;
 
@@ -66,19 +62,6 @@ export function BlackHoleModel({
           m.depthWrite = false;
           m.side = THREE.DoubleSide;
         }
-
-        // Treat Blender "environment" mesh like a skybox: always behind everything.
-        // - no depth write/test, so it doesn't occlude panels/Zodiac
-        // - renderOrder negative to draw first
-        if (mesh.name?.toLowerCase().includes("environment")) {
-          m.depthWrite = false;
-          m.depthTest = false;
-          m.side = THREE.DoubleSide;
-          mesh.renderOrder = -100;
-        } else {
-          // Black hole core draws above the background dome.
-          mesh.renderOrder = 0;
-        }
       });
     });
   }, [model]);
@@ -91,4 +74,4 @@ export function BlackHoleModel({
 }
 
 // Optional preload for smoother first render when asset exists.
-useGLTF.preload(`${import.meta.env.BASE_URL}models/blackhole/blackhole.glb`);
+useGLTF.preload("/models/blackhole/blackhole.glb");

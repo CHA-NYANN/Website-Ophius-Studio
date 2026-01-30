@@ -1,40 +1,82 @@
-import React, { Suspense } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { BlackHole } from "./BlackHole";
 import { BlackHoleModel } from "./BlackHoleModel";
+import { BlackHoleLensingPass } from "../fx/BlackHoleLensingPass";
+
+// Prefer a clean canonical name, but also support the exported Blender file name.
+const MODEL_URLS = [
+  "/models/blackhole/blackhole.glb",
+  "/models/blackhole/black_hole_project.glb",
+];
+
+async function isLikelyBinaryAsset(url: string): Promise<boolean> {
+  try {
+    // HEAD is cheap; in SPA dev servers, missing files sometimes fall back to index.html (200 + text/html).
+    const r = await fetch(url, { method: "HEAD", cache: "no-store" });
+    if (!r.ok) return false;
+
+    const ct = (r.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("text/html")) return false;
+
+    // If the server doesn't provide content-type, assume false to avoid false-positives.
+    if (!ct) return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * BlackHoleHost
  *
- * Kamu minta: **hapus blackhole dari coding** dan **pakai blackhole dari GLB Blender** saja.
- * Jadi component ini SELALU load GLB, tanpa fallback procedural/lensing.
+ * - If a model exists in /public, we render the model (cheaper / more realistic art).
+ * - If not, we fall back to the current procedural Level-2 black hole.
  *
- * Kenapa sebelumnya terasa "GLB nggak kebaca"?
- * 1) Kamera awal menghadap +Z (karena yaw awal = PI), jadi kalau blackhole ditempatkan di Z negatif
- *    dia berada "di belakang" kamera dan terlihat seperti tidak ke-load.
- * 2) Pemilihan model pakai HEAD + content-type kadang false-negative → model tidak pernah di-mount.
- *
- * Fix di sini:
- * - Langsung mount GLB (tanpa HEAD check)
- * - Dibungkus Suspense supaya scene lain tetap render dulu (ngurangin black screen)
- * - Posisi dipindah ke Z positif (di depan kamera) supaya langsung keliatan dari POV awal.
+ * Important: Dev servers may return index.html for unknown paths (HTTP 200). We guard against that.
  */
 export function BlackHoleHost() {
-  // IMPORTANT: pakai BASE_URL biar aman kalau app dipublish di sub-path (mis. GitHub Pages).
-  const url = `${import.meta.env.BASE_URL}models/blackhole/blackhole.glb`;
+  const [modelUrl, setModelUrl] = useState<string | null>(null);
+
+  const urls = useMemo(() => MODEL_URLS, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      for (const url of urls) {
+        const ok = await isLikelyBinaryAsset(url);
+        if (ok) {
+          if (alive) setModelUrl(url);
+          return;
+        }
+      }
+      if (alive) setModelUrl(null);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [urls]);
+
+  const useModel = modelUrl != null;
 
   return (
-    <Suspense fallback={null}>
-      <BlackHoleModel
-        url={url}
-        /**
-         * IMPORTANT:
-         * Kamera POV berada di (0,0,0) dan menghadap +Z.
-         * Jadi blackhole harus punya Z positif agar masuk frustum saat load.
-         */
-        position={[-7.2, 0.0, 18.0]}
-        rotation={[0, 0.12, 0]}
-        // Asset GLB punya mesh "environment" besar (~86 units), jadi scale kecil biar enak komposisinya.
-        scale={0.22}
-      />
-    </Suspense>
+    <>
+      {useModel ? (
+        <BlackHoleModel
+          url={modelUrl!}
+          // Slight tilt helps match the cinematic reference angle.
+          rotation={[0, 0.12, 0.0]}
+          scale={1}
+          position={[-5.6, 0.18, 0.25]}
+        />
+      ) : (
+        <>
+          <BlackHole />
+          <BlackHoleLensingPass />
+        </>
+      )}
+    </>
   );
 }
