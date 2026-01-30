@@ -1,12 +1,12 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { GalaxyLoadingOverlay } from "@/components/common/GalaxyLoadingOverlay";
 import { GalaxyCanvas } from "@/galaxy/GalaxyCanvas";
 import { GalaxyHud } from "@/galaxy/hud/GalaxyHud";
 import { FocusPanelMode } from "@/galaxy/scene/ui/FocusPanelMode";
 import { PortalOverlay } from "@/portal/PortalOverlay";
 import { portal } from "@/portal/portalSingleton";
 import { useRaf } from "@/app/hooks/useRaf";
+import { GalaxyLoadingOverlay } from "@/components/common/GalaxyLoadingOverlay";
 
 export function AppShell() {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export function AppShell() {
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
-      <GalaxyLoadingOverlay pathname={location.pathname} />
+      <GalaxyLoadingOverlay />
       <GalaxyCanvas />
       <GalaxyHud />
       <FocusPanelMode />

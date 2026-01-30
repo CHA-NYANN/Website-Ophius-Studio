@@ -1,65 +1,63 @@
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
-import { useEffect, useMemo, useState } from "react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
-type Props = {
-  /**
-   * Optional: show the overlay only on the galaxy route ("/").
-   * Default: true.
-   */
-  onlyOnGalaxyRoute?: boolean;
-  /**
-   * The current route path (inject from AppShell).
-   */
-  pathname?: string;
-};
+type Phase = "visible" | "fading" | "hidden";
 
 /**
  * GalaxyLoadingOverlay
  *
- * Goal:
- * - Remove the "black screen" feeling during initial GLB + shader compilation.
- * - Show a lightweight HTML overlay + Lottie animation + progress.
+ * Goals:
+ * - No black screen: show instantly, even while GLB/shaders are loading.
+ * - Minimum display time: avoid flicker on fast loads.
+ * - Smooth fade-out + slight blur: no "pop" disappearance.
  *
  * Notes:
- * - This does NOT make the 3D assets load faster, but makes the wait feel intentional.
- * - Works on Vercel because the animation is served from /public.
+ * - Uses drei's useProgress() which tracks assets loaded via useLoader/useGLTF inside the Canvas.
  */
-export function GalaxyLoadingOverlay({ onlyOnGalaxyRoute = true, pathname }: Props) {
+export function GalaxyLoadingOverlay() {
   const { active, progress } = useProgress();
 
-  // Ensure we show something immediately (even before the loading manager becomes active).
-  const [forceVisible, setForceVisible] = useState(true);
+  // Tunables
+  const MIN_SHOW_MS = 650;   // minimum time overlay stays visible
+  const FADE_MS = 550;       // fade-out duration (400–700ms range)
+
+  const startRef = useRef<number>(typeof performance !== "undefined" ? performance.now() : Date.now());
+  const [phase, setPhase] = useState<Phase>("visible");
+
+  const pct = useMemo(() => Math.max(0, Math.min(100, progress)), [progress]);
 
   useEffect(() => {
-    const t = setTimeout(() => setForceVisible(false), 350);
-    return () => clearTimeout(t);
-  }, []);
+    const done = !active && pct >= 100;
 
-  const shouldShowByRoute = useMemo(() => {
-    if (!onlyOnGalaxyRoute) return true;
-    if (!pathname) return true; // safe default
-    return pathname === "/";
-  }, [onlyOnGalaxyRoute, pathname]);
-
-  const visible = shouldShowByRoute && (forceVisible || active || (progress > 0 && progress < 100));
-
-  // Simple fade-out on completion.
-  const [fadeOut, setFadeOut] = useState(false);
-
-  useEffect(() => {
-    if (!visible) {
-      setFadeOut(false);
+    if (!done) {
+      // If loading starts again (route changes / new assets), ensure overlay returns.
+      setPhase("visible");
       return;
     }
-    if (!active && progress >= 100) {
-      setFadeOut(true);
-    } else {
-      setFadeOut(false);
-    }
-  }, [active, progress, visible]);
 
-  if (!visible) return null;
+    // done: honor minimum display time, then fade-out.
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const elapsed = now - startRef.current;
+    const delay = Math.max(0, MIN_SHOW_MS - elapsed);
+
+    let t1: any;
+    let t2: any;
+
+    t1 = setTimeout(() => {
+      setPhase("fading");
+      t2 = setTimeout(() => setPhase("hidden"), FADE_MS);
+    }, delay);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [active, pct]);
+
+  if (phase === "hidden") return null;
+
+  const isFading = phase === "fading";
 
   return (
     <div
@@ -71,53 +69,54 @@ export function GalaxyLoadingOverlay({ onlyOnGalaxyRoute = true, pathname }: Pro
         display: "grid",
         placeItems: "center",
         pointerEvents: "auto",
-        background: "radial-gradient(circle at 50% 40%, rgba(10, 32, 70, 0.95) 0%, rgba(0,0,0,0.98) 70%)",
-        transition: "opacity 600ms ease",
-        opacity: fadeOut ? 0 : 1,
+        background: "radial-gradient(circle at 50% 40%, rgba(8,26,61,0.92) 0%, rgba(0,0,0,0.92) 70%)",
+        backdropFilter: isFading ? "blur(6px)" : "blur(2px)",
+        WebkitBackdropFilter: isFading ? "blur(6px)" : "blur(2px)",
+        opacity: isFading ? 0 : 1,
+        transition: `opacity ${FADE_MS}ms ease, backdrop-filter ${FADE_MS}ms ease`,
       }}
     >
-      <div style={{ width: 380, padding: 16, textAlign: "center", color: "white" }}>
-        <div style={{ letterSpacing: 6, fontSize: 12, opacity: 0.8, marginBottom: 6 }}>OPHIUS</div>
-
-        <div style={{ width: "100%", height: 260, margin: "0 auto" }}>
-          <DotLottieReact
-            src="/lottie/sci-fi-machine.lottie"
-            loop
-            autoplay
-            style={{ width: "100%", height: "100%" }}
-          />
-        </div>
-
-        <div style={{ opacity: 0.85, marginTop: 8, fontSize: 14 }}>
-          Entering Galaxy…
-        </div>
-
+      <div style={{ width: 380, maxWidth: "86vw", textAlign: "center", color: "white" }}>
+        <DotLottieReact
+          src="/lottie/sci-fi-machine.lottie"
+          autoplay
+          loop
+          style={{
+            width: "100%",
+            height: 260,
+            margin: "0 auto",
+            filter: isFading ? "blur(4px)" : "blur(0px)",
+            opacity: isFading ? 0.85 : 1,
+            transition: `filter ${FADE_MS}ms ease, opacity ${FADE_MS}ms ease`,
+          }}
+        />
         <div
           style={{
-            height: 6,
-            background: "rgba(255,255,255,0.15)",
-            borderRadius: 999,
-            marginTop: 12,
-            overflow: "hidden",
+            marginTop: 10,
+            fontSize: 13,
+            letterSpacing: 0.8,
+            opacity: 0.78,
+            userSelect: "none",
+            filter: isFading ? "blur(2px)" : "blur(0px)",
+            transition: `filter ${FADE_MS}ms ease, opacity ${FADE_MS}ms ease`,
           }}
         >
+          ENTERING OPHIUS…
+        </div>
+
+        <div style={{ height: 6, background: "rgba(255,255,255,.14)", borderRadius: 999, marginTop: 12 }}>
           <div
             style={{
               height: 6,
-              width: `${Math.min(100, progress)}%`,
-              background: "rgba(255,255,255,0.85)",
+              width: `${pct}%`,
+              background: "rgba(255,255,255,.88)",
               borderRadius: 999,
               transition: "width 120ms linear",
             }}
           />
         </div>
-
-        <div style={{ fontSize: 12, opacity: 0.65, marginTop: 8 }}>
-          {Math.round(progress)}%
-        </div>
-
-        <div style={{ fontSize: 11, opacity: 0.45, marginTop: 10 }}>
-          First load may take a few seconds (GLB + GPU warm-up).
+        <div style={{ fontSize: 12, opacity: 0.62, marginTop: 8, userSelect: "none" }}>
+          {Math.round(pct)}%
         </div>
       </div>
     </div>
