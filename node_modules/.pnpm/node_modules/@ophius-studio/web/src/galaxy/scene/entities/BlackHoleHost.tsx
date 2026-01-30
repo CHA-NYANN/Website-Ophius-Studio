@@ -8,13 +8,14 @@ import { BlackHoleModel } from "./BlackHoleModel";
  * Jadi component ini SELALU load GLB, tanpa fallback procedural/lensing.
  *
  * Kenapa sebelumnya terasa "GLB nggak kebaca"?
- * 1) Posisi default lama ada di Z positif, sementara kamera awal menghadap -Z → objek berada "di belakang" kamera.
+ * 1) Kamera awal menghadap +Z (karena yaw awal = PI), jadi kalau blackhole ditempatkan di Z negatif
+ *    dia berada "di belakang" kamera dan terlihat seperti tidak ke-load.
  * 2) Pemilihan model pakai HEAD + content-type kadang false-negative → model tidak pernah di-mount.
  *
  * Fix di sini:
  * - Langsung mount GLB (tanpa HEAD check)
  * - Dibungkus Suspense supaya scene lain tetap render dulu (ngurangin black screen)
- * - Posisi dipindah ke Z negatif supaya langsung keliatan dari POV awal.
+ * - Posisi dipindah ke Z positif (di depan kamera) supaya langsung keliatan dari POV awal.
  */
 export function BlackHoleHost() {
   // IMPORTANT: pakai BASE_URL biar aman kalau app dipublish di sub-path (mis. GitHub Pages).
@@ -24,10 +25,14 @@ export function BlackHoleHost() {
     <Suspense fallback={null}>
       <BlackHoleModel
         url={url}
-        // Tuning: taruh di kiri & di depan (Z negatif) supaya langsung terlihat dari kamera awal.
-        position={[-7.8, 0.15, -14.5]}
-        rotation={[0, 0.12, 0.0]}
-        // Asset GLB kamu besar (bounding box ~80an unit), jadi kita kecilkan.
+        /**
+         * IMPORTANT:
+         * Kamera POV berada di (0,0,0) dan menghadap +Z.
+         * Jadi blackhole harus punya Z positif agar masuk frustum saat load.
+         */
+        position={[-7.2, 0.0, 18.0]}
+        rotation={[0, 0.12, 0]}
+        // Asset GLB punya mesh "environment" besar (~86 units), jadi scale kecil biar enak komposisinya.
         scale={0.22}
       />
     </Suspense>
