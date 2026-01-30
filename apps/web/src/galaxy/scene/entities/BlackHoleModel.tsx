@@ -74,4 +74,4 @@ export function BlackHoleModel({
 }
 
 // Optional preload for smoother first render when asset exists.
-useGLTF.preload("/models/blackhole/blackhole.glb");
+useGLTF.preload(`${import.meta.env.BASE_URL}models/blackhole/blackhole.glb`);

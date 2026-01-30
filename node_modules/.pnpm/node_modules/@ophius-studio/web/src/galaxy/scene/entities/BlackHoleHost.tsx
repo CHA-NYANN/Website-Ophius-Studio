@@ -1,75 +1,34 @@
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense } from "react";
 import { BlackHoleModel } from "./BlackHoleModel";
 
-// Prefer a clean canonical name, but also support the exported Blender file name.
-const MODEL_URLS = [
-  "/models/blackhole/blackhole.glb",
-  "/models/blackhole/black_hole_project.glb",
-];
-
-async function isLikelyBinaryAsset(url: string): Promise<boolean> {
-  try {
-    // HEAD is cheap; in SPA dev servers, missing files sometimes fall back to index.html (200 + text/html).
-    const r = await fetch(url, { method: "HEAD", cache: "no-store" });
-    if (!r.ok) return false;
-
-    const ct = (r.headers.get("content-type") || "").toLowerCase();
-    if (ct.includes("text/html")) return false;
-
-    // If the server doesn't provide content-type, assume false to avoid false-positives.
-    if (!ct) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
- * BlackHoleHost (GLB-only)
+ * BlackHoleHost
  *
- * Permintaan terbaru:
- * - Hapus blackhole yang dari coding (procedural + lensing).
- * - Fokus pakai blackhole dari GLB (Blender) saja.
+ * Kamu minta: **hapus blackhole dari coding** dan **pakai blackhole dari GLB Blender** saja.
+ * Jadi component ini SELALU load GLB, tanpa fallback procedural/lensing.
  *
- * Asset tetap di:
- *   apps/web/public/models/blackhole/blackhole.glb
- * atau nama export lama:
- *   black_hole_project.glb
+ * Kenapa sebelumnya terasa "GLB nggak kebaca"?
+ * 1) Posisi default lama ada di Z positif, sementara kamera awal menghadap -Z → objek berada "di belakang" kamera.
+ * 2) Pemilihan model pakai HEAD + content-type kadang false-negative → model tidak pernah di-mount.
+ *
+ * Fix di sini:
+ * - Langsung mount GLB (tanpa HEAD check)
+ * - Dibungkus Suspense supaya scene lain tetap render dulu (ngurangin black screen)
+ * - Posisi dipindah ke Z negatif supaya langsung keliatan dari POV awal.
  */
 export function BlackHoleHost() {
-  const [modelUrl, setModelUrl] = useState<string | null>(null);
-  const urls = useMemo(() => MODEL_URLS, []);
-
-  useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      for (const url of urls) {
-        const ok = await isLikelyBinaryAsset(url);
-        if (ok) {
-          if (alive) setModelUrl(url);
-          return;
-        }
-      }
-      if (alive) setModelUrl(null);
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [urls]);
-
-  if (!modelUrl) return null;
+  // IMPORTANT: pakai BASE_URL biar aman kalau app dipublish di sub-path (mis. GitHub Pages).
+  const url = `${import.meta.env.BASE_URL}models/blackhole/blackhole.glb`;
 
   return (
     <Suspense fallback={null}>
       <BlackHoleModel
-        url={modelUrl}
-        // Slight tilt helps match the cinematic reference angle.
+        url={url}
+        // Tuning: taruh di kiri & di depan (Z negatif) supaya langsung terlihat dari kamera awal.
+        position={[-7.8, 0.15, -14.5]}
         rotation={[0, 0.12, 0.0]}
-        scale={1}
-        position={[-5.6, 0.18, 0.25]}
+        // Asset GLB kamu besar (bounding box ~80an unit), jadi kita kecilkan.
+        scale={0.22}
       />
     </Suspense>
   );
