@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { BlackHole } from "./BlackHole";
 import { BlackHoleModel } from "./BlackHoleModel";
-import { BlackHoleLensingPass } from "../fx/BlackHoleLensingPass";
 
 // Prefer a clean canonical name, but also support the exported Blender file name.
 const MODEL_URLS = [
@@ -28,16 +26,16 @@ async function isLikelyBinaryAsset(url: string): Promise<boolean> {
 }
 
 /**
- * BlackHoleHost
+ * BlackHoleHost (GLB-only)
  *
- * - If a model exists in /public, we render the model (cheaper / more realistic art).
- * - If not, we fall back to the current procedural Level-2 black hole.
+ * User request:
+ * - Hapus blackhole + cincin yang dibuat dari kode (procedural).
+ * - Fokus pakai blackhole dari GLB Blender saja.
  *
- * Important: Dev servers may return index.html for unknown paths (HTTP 200). We guard against that.
+ * Jadi: kalau GLB ada -> render GLB. Kalau tidak ada -> render nothing (tanpa fallback procedural).
  */
 export function BlackHoleHost() {
   const [modelUrl, setModelUrl] = useState<string | null>(null);
-
   const urls = useMemo(() => MODEL_URLS, []);
 
   useEffect(() => {
@@ -59,24 +57,15 @@ export function BlackHoleHost() {
     };
   }, [urls]);
 
-  const useModel = modelUrl != null;
+  if (!modelUrl) return null;
 
   return (
-    <>
-      {useModel ? (
-        <BlackHoleModel
-          url={modelUrl!}
-          // Slight tilt helps match the cinematic reference angle.
-          rotation={[0, 0.12, 0.0]}
-          scale={1}
-          position={[-5.6, 0.18, 0.25]}
-        />
-      ) : (
-        <>
-          <BlackHole />
-          <BlackHoleLensingPass />
-        </>
-      )}
-    </>
+    <BlackHoleModel
+      url={modelUrl}
+      // Slight tilt helps match the cinematic reference angle.
+      rotation={[0, 0.12, 0.0]}
+      scale={1}
+      position={[-5.6, 0.18, 0.25]}
+    />
   );
 }
