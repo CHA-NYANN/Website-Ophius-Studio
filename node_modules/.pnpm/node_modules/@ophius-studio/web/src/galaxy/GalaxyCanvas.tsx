@@ -60,7 +60,7 @@ export function GalaxyCanvas() {
         touchAction: "none",
         opacity: isGalaxy ? 1 : 0,
         transition: "opacity 180ms ease",
-        background: "#000"
+        background: "radial-gradient(1200px 600px at 50% 40%, rgba(29,78,216,0.18), rgba(0,0,0,1) 60%)"
       }}
     >
       <Canvas dpr={dpr} frameloop={frameloop} camera={initialCamera} gl={{ antialias: !reduceMotion, alpha: true }}>

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import * as THREE from "three";
 import { BlackHoleHost } from "../entities/BlackHoleHost";
 import { Zodiac } from "../entities/Zodiac";
@@ -25,7 +25,9 @@ export function EnvironmentFx() {
 
       {/* Distant constellations + accents */}
       <Zodiac />
-      <BlackHoleHost />
-    </group>
+      <Suspense fallback={null}>
+        <BlackHoleHost />
+      </Suspense>
+</group>
   );
 }

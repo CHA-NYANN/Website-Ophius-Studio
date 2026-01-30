@@ -1,6 +1,6 @@
 import { Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef, useSyncExternalStore } from "react";
+import { Suspense, useMemo, useRef, useSyncExternalStore } from "react";
 import { Group, MathUtils, Vector3 } from "three";
 import { TOKENS } from "@/theme/tokens";
 import { cameraStore } from "@/galaxy/scene/rigs/cameraStore";
@@ -67,15 +67,17 @@ export function SearchRig() {
           opacity={0.12}
         />
       </mesh>
-      <Text
-        position={[-dims.w / 2 + 0.12, 0.45, 0.01]}
+      <Suspense fallback={null}>
+        <Text
+          position={[-dims.w / 2 + 0.12, 0.45, 0.01]}
         fontSize={0.16}
         anchorX="left"
         anchorY="middle"
         color={"white"}
       >
         SEARCH
-      </Text>
+        </Text>
+      </Suspense>
 
       <mesh raycast={() => null as any} position={[0, -0.35, 0]}>
         <planeGeometry args={[dims.kbw, dims.kbh]} />
